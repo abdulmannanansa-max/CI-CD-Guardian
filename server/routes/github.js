@@ -4,15 +4,16 @@ const github = require('../services/githubService');
 
 // Parse owner/repo from input (handles full URLs and owner/repo format)
 function parseRepoInput(input) {
+  const value = String(input || '').trim();
   // Handle full GitHub URLs
-  const urlMatch = input.match(/github\.com\/([^/]+)\/([^/\s?#]+)/);
+  const urlMatch = value.match(/^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/\s?#]+)/i);
   if (urlMatch) {
     return { owner: urlMatch[1], repo: urlMatch[2].replace(/\.git$/, '') };
   }
   // Handle owner/repo format
-  const parts = input.split('/').filter(Boolean);
-  if (parts.length >= 2) {
-    return { owner: parts[0], repo: parts[1] };
+  const parts = value.split('/').filter(Boolean);
+  if (parts.length === 2 && parts.every((part) => /^[A-Za-z0-9_.-]+$/.test(part))) {
+    return { owner: parts[0], repo: parts[1].replace(/\.git$/, '') };
   }
   return null;
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   GitBranch,
@@ -8,6 +8,8 @@ import {
   LogOut,
   GitFork as GithubIcon,
   Zap,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -19,16 +21,26 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'is-collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <Zap size={18} color="white" />
         </div>
-        <div>
+        <div className="sidebar-brand-copy">
           <div className="sidebar-title">CI/CD Guardian</div>
           <div className="sidebar-subtitle">AI Failure Detection</div>
         </div>
+        <button
+          className="sidebar-toggle"
+          type="button"
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -42,7 +54,7 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
             style={!repo && item.id !== 'dashboard' ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
           >
             <item.icon />
-            <span>{item.label}</span>
+            <span className="nav-label">{item.label}</span>
           </button>
         ))}
 
@@ -54,19 +66,19 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
               style={{ cursor: 'default', background: 'var(--bg-tertiary)' }}
             >
               <GithubIcon size={16} />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
+              <span className="nav-label" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
                 {repo.info.fullName}
               </span>
             </div>
             <button className="nav-item" onClick={onDisconnect} style={{ color: 'var(--error)' }}>
               <LogOut size={16} />
-              <span>Disconnect</span>
+              <span className="nav-label">Disconnect</span>
             </button>
           </>
         )}
       </nav>
 
-      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border-subtle)' }}>
+      <div className="sidebar-footer-copy" style={{ padding: '14px 16px', borderTop: '1px solid var(--border-subtle)' }}>
         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           Powered by Gemini AI + GitHub API
         </div>

@@ -14,6 +14,7 @@ import {
   Gauge,
   Wrench,
   Eye,
+  Search,
 } from 'lucide-react';
 
 function ScoreRing({ score, size = 120, strokeWidth = 8 }) {
@@ -74,6 +75,7 @@ export default function WorkflowAnalysis({ repo }) {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  const [workflowQuery, setWorkflowQuery] = useState('');
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -151,6 +153,9 @@ export default function WorkflowAnalysis({ repo }) {
 
   const currentWf = analysis.workflows[selectedWorkflowIdx];
   const rba = currentWf?.ruleBasedAnalysis;
+  const visibleWorkflows = analysis.workflows
+    .map((workflow, index) => ({ workflow, index }))
+    .filter(({ workflow }) => workflow.workflow.name.toLowerCase().includes(workflowQuery.toLowerCase()));
 
   return (
     <div className="fade-in">
@@ -203,11 +208,24 @@ export default function WorkflowAnalysis({ repo }) {
 
       {/* Workflow selector */}
       {analysis.workflows.length > 1 && (
-        <div className="tabs" style={{ width: 'fit-content' }}>
-          {analysis.workflows.map((wf, idx) => (
+        <div className="workflow-selector" aria-label="Workflow selector">
+          <div className="workflow-selector-head">
+            <span className="eyebrow">SELECT PIPELINE</span>
+            <label className="workflow-search">
+              <Search size={15} />
+              <input
+                value={workflowQuery}
+                onChange={(event) => setWorkflowQuery(event.target.value)}
+                placeholder="Search workflows"
+                aria-label="Search workflows"
+              />
+            </label>
+          </div>
+          <div className="workflow-chip-rail">
+          {visibleWorkflows.map(({ workflow: wf, index: idx }) => (
             <button
               key={idx}
-              className={`tab ${selectedWorkflowIdx === idx ? 'active' : ''}`}
+              className={`workflow-chip ${selectedWorkflowIdx === idx ? 'active' : ''}`}
               onClick={() => {
                 setSelectedWorkflowIdx(idx);
                 setShowAi(false);
@@ -217,6 +235,8 @@ export default function WorkflowAnalysis({ repo }) {
               {wf.workflow.name}
             </button>
           ))}
+          {visibleWorkflows.length === 0 && <span className="workflow-no-results">No matching workflows</span>}
+          </div>
         </div>
       )}
 

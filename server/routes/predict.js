@@ -60,11 +60,12 @@ router.post('/failure', async (req, res) => {
 
     // Combine predictions
     let combinedProbability = heuristicPrediction.failureProbability;
-    if (aiPrediction.available && aiPrediction.prediction) {
+    if (aiPrediction.available && aiPrediction.prediction && Number.isFinite(Number(aiPrediction.prediction.failureProbability))) {
       // Weighted average: 40% heuristic, 60% AI
+      const aiProbability = Math.max(0, Math.min(1, Number(aiPrediction.prediction.failureProbability)));
       combinedProbability = Math.round(
         (heuristicPrediction.failureProbability * 0.4 +
-          aiPrediction.prediction.failureProbability * 0.6) *
+          aiProbability * 0.6) *
           100
       ) / 100;
     }

@@ -1,22 +1,31 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 let genAI = null;
-let model = null;
 
 function initGemini() {
   if (!genAI && process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
-  return model;
+  return genAI;
+}
+
+async function generateText(prompt) {
+  const client = initGemini();
+  if (!client) return null;
+
+  const interaction = await client.interactions.create({
+    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    input: prompt,
+  });
+
+  return interaction.output_text || '';
 }
 
 /**
  * Get detailed AI analysis of a CI/CD workflow
  */
 async function analyzeWorkflowWithAI(yamlContent, workflowName, ruleBasedIssues) {
-  const m = initGemini();
-  if (!m) {
+  if (!initGemini()) {
     return {
       available: false,
       message: 'Gemini API key not configured. Add GEMINI_API_KEY to .env file.',
@@ -55,8 +64,7 @@ Please provide your analysis in the following JSON format (return ONLY valid JSO
 }`;
 
   try {
-    const result = await m.generateContent(prompt);
-    const text = result.response.text();
+    const text = await generateText(prompt);
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -78,8 +86,7 @@ Please provide your analysis in the following JSON format (return ONLY valid JSO
  * Predict failure likelihood for a hypothetical commit
  */
 async function predictFailureWithAI(commitData, workflowYaml, historicalData) {
-  const m = initGemini();
-  if (!m) {
+  if (!initGemini()) {
     return {
       available: false,
       message: 'Gemini API key not configured.',
@@ -119,8 +126,7 @@ Analyze and provide your prediction in JSON format ONLY (no markdown):
 }`;
 
   try {
-    const result = await m.generateContent(prompt);
-    const text = result.response.text();
+    const text = await generateText(prompt);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return {

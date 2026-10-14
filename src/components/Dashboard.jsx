@@ -50,6 +50,10 @@ export default function Dashboard({ repo }) {
 
   const { info } = repo;
 
+  const gaugeRadius = 54;
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
+  const gaugeOffset = gaugeCircumference - (successRate / 100) * gaugeCircumference;
+
   if (loading) {
     return (
       <div className="fade-in">
@@ -83,6 +87,25 @@ export default function Dashboard({ repo }) {
         </div>
         <p>{info.description || 'No description available'}</p>
       </div>
+
+      <section className="dashboard-hero card" aria-label="Repository health summary">
+        <div className="dashboard-hero-copy">
+          <span className="eyebrow">LIVE REPOSITORY SIGNAL</span>
+          <h2>Pipeline health,<br /><em>without the guesswork.</em></h2>
+          <div className="hero-meta"><span className="status-led success" /> {workflows.length} active workflows <span className="hero-separator">/</span> {totalRuns} recent runs</div>
+        </div>
+        <div className="hero-gauge-wrap">
+          <svg className="hero-gauge" viewBox="0 0 132 132" role="img" aria-label={`${successRate}% CI/CD success rate`}>
+            <circle cx="66" cy="66" r={gaugeRadius} className="hero-gauge-track" />
+            <circle cx="66" cy="66" r={gaugeRadius} className="hero-gauge-value" strokeDasharray={gaugeCircumference} strokeDashoffset={gaugeOffset} />
+          </svg>
+          <div className="hero-gauge-label"><strong>{successRate}%</strong><span>SUCCESS RATE</span></div>
+        </div>
+        <div className="hero-heatmap" aria-label="Recent run status heatmap">
+          <span className="eyebrow">RUN PULSE / 30</span>
+          <div className="heatmap-grid">{runs.slice(0, 30).map((run) => <span key={run.id} className={`heat-cell ${run.conclusion || run.status}`} title={`${run.name}: ${run.conclusion || run.status}`} />)}</div>
+        </div>
+      </section>
 
       {/* Stats */}
       <div className="stats-grid">

@@ -10,11 +10,16 @@
     "server": "node server/index.js",
     "build": "vite build"
   },
-  "keywords": ["cicd", "ai", "github", "failure-detection"],
+  "keywords": [
+    "cicd",
+    "ai",
+    "github",
+    "failure-detection"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.0",
+    "@google/genai": "^2.29.1",
     "axios": "^1.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",

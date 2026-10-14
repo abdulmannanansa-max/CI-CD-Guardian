@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600&family=Unbounded:wght@500;600;700;800&display=swap');
+
+/* CI/CD Guardian design tokens. Tune the palette and motion here. */
+:root {
+  --ink: #0c0716;
+  --surface: #170f26;
+  --raised: #221538;
+  --paper: #f3ecdd;
+  --primary: #ff2d8a;
+  --secondary: #7c5cff;
+  --highlight: #ffb020;
+  --success: #2cffb3;
+  --danger: #ff4d3d;
+  --info: #27d8ff;
+  --primary-rgb: 255, 45, 138;
+  --secondary-rgb: 124, 92, 255;
+  --font-display: 'Unbounded', sans-serif;
+  --font-body: 'Familjen Grotesk', sans-serif;
+  --font-data: 'Martian Mono', monospace;
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
+  --motion-factor: 1;
+  --motion-fast: calc(180ms * var(--motion-factor));
+  --motion-base: calc(360ms * var(--motion-factor));
+  --motion-slow: calc(700ms * var(--motion-factor));
+  --ease-snappy: cubic-bezier(.2, .9, .2, 1);
+  --ease-expo: cubic-bezier(.16, 1, .3, 1);
+}
+
+[data-motion='off'] { --motion-factor: 0; }
+[data-motion='reduced'] { --motion-factor: .45; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-factor: 0; }
+}
