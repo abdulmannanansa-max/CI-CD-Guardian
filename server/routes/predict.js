@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const github = require('../services/githubService');
 const { predictFailure } = require('../services/predictionEngine');
-const { predictFailureWithAI } = require('../services/geminiService');
+const { predictFailureWithAI } = require('../services/aiService');
 
 // POST /api/predict/failure
 // Body: { owner, repo, commitMessage, files: [{ filename, changeType, additions, deletions }] }

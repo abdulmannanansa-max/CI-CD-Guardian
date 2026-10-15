@@ -37,19 +37,26 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
           className="sidebar-toggle"
           type="button"
           aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-expanded={!collapsed}
+          aria-controls="primary-navigation"
+          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
           onClick={() => setCollapsed((value) => !value)}
         >
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
       </div>
 
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" id="primary-navigation" aria-label="Primary navigation" style={{ '--active-index': Math.max(0, NAV_ITEMS.findIndex((item) => item.id === activeView)) }}>
         <div className="nav-section-label">Navigation</div>
+        <span className="nav-active-indicator" aria-hidden="true" />
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
             className={`nav-item ${activeView === item.id ? 'active' : ''}`}
             onClick={() => onNavigate(item.id)}
+            title={item.label}
+            aria-label={item.label}
+            aria-current={activeView === item.id ? 'page' : undefined}
             disabled={!repo && item.id !== 'dashboard'}
             style={!repo && item.id !== 'dashboard' ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
           >
@@ -62,7 +69,9 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
           <>
             <div className="nav-section-label" style={{ marginTop: 16 }}>Repository</div>
             <div
-              className="nav-item"
+              className="nav-item repo-nav-item"
+              title={repo.info.fullName}
+              aria-label={`Connected repository: ${repo.info.fullName}`}
               style={{ cursor: 'default', background: 'var(--bg-tertiary)' }}
             >
               <GithubIcon size={16} />
@@ -70,7 +79,7 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
                 {repo.info.fullName}
               </span>
             </div>
-            <button className="nav-item" onClick={onDisconnect} style={{ color: 'var(--error)' }}>
+            <button className="nav-item disconnect-item" onClick={onDisconnect} style={{ color: 'var(--error)' }}>
               <LogOut size={16} />
               <span className="nav-label">Disconnect</span>
             </button>
@@ -80,7 +89,7 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
 
       <div className="sidebar-footer-copy" style={{ padding: '14px 16px', borderTop: '1px solid var(--border-subtle)' }}>
         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-          Powered by Gemini AI + GitHub API
+          AI-powered insights + GitHub API
         </div>
       </div>
     </aside>

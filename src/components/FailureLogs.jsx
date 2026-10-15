@@ -34,7 +34,7 @@ export default function FailureLogs({ repo }) {
   const [expandedRun, setExpandedRun] = useState(null);
   const [jobsMap, setJobsMap] = useState({});
   const [jobsLoading, setJobsLoading] = useState({});
-  const [filter, setFilter] = useState('all'); // all, failure, success
+  const [filter, setFilter] = useState('all'); // all, failure, success, in_progress
 
   useEffect(() => {
     async function fetchRuns() {
@@ -73,7 +73,9 @@ export default function FailureLogs({ repo }) {
     }
   }
 
-  const filteredRuns = filter === 'all' ? runs : runs.filter((r) => r.conclusion === filter);
+  const filteredRuns = filter === 'all' ? runs : filter === 'in_progress'
+    ? runs.filter((r) => !r.conclusion && ['in_progress', 'queued', 'pending', 'waiting', 'requested'].includes(r.status))
+    : runs.filter((r) => r.conclusion === filter);
 
   if (loading) {
     return (
@@ -111,6 +113,9 @@ export default function FailureLogs({ repo }) {
           <button className={`tab ${filter === 'success' ? 'active' : ''}`} onClick={() => setFilter('success')}>
             Passed ({runs.filter((r) => r.conclusion === 'success').length})
           </button>
+          <button className={`tab ${filter === 'in_progress' ? 'active' : ''}`} onClick={() => setFilter('in_progress')}>
+            In progress ({runs.filter((r) => !r.conclusion && ['in_progress', 'queued', 'pending', 'waiting', 'requested'].includes(r.status)).length})
+          </button>
         </div>
       </div>
 
@@ -128,8 +133,8 @@ export default function FailureLogs({ repo }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filteredRuns.map((run) => (
-            <div key={run.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {filteredRuns.map((run, index) => (
+            <div key={run.id} className="card log-row" style={{ '--i': index, padding: 0, overflow: 'hidden' }}>
               {/* Run Header */}
               <div
                 className="job-header"
@@ -142,9 +147,9 @@ export default function FailureLogs({ repo }) {
                   <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                     {run.name}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                    #{run.runNumber} · {run.branch} · {run.event} ·{' '}
-                    {new Date(run.createdAt).toLocaleString()}
+                  <div className="run-row-meta" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                    <span>#{run.runNumber} · {run.branch} · {run.event}</span>
+                    <time>{new Date(run.createdAt).toLocaleString()}</time>
                   </div>
                   {run.headCommitMessage && (
                     <div
@@ -164,13 +169,7 @@ export default function FailureLogs({ repo }) {
                   )}
                 </div>
                 <span
-                  className={`badge badge-${
-                    run.conclusion === 'success'
-                      ? 'success'
-                      : run.conclusion === 'failure'
-                      ? 'error'
-                      : 'neutral'
-                  }`}
+                  className={`badge badge-${run.conclusion === 'success' ? 'success' : run.conclusion === 'failure' ? 'error' : ['in_progress', 'queued', 'pending', 'waiting', 'requested'].includes(run.status) ? 'warning' : 'neutral'}`}
                 >
                   {run.conclusion || run.status}
                 </span>
@@ -187,7 +186,7 @@ export default function FailureLogs({ repo }) {
 
               {/* Expanded Jobs/Steps */}
               {expandedRun === run.id && (
-                <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '12px 18px' }}>
+                <div className="job-details-enter" style={{ borderTop: '1px solid var(--border-subtle)', padding: '12px 18px' }}>
                   {jobsLoading[run.id] ? (
                     <div className="loading-state" style={{ padding: 20 }}>
                       <div className="spinner" />

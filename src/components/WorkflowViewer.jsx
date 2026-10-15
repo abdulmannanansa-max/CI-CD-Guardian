@@ -1,5 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { GitBranch, Eye, FileCode, Clock, ExternalLink } from 'lucide-react';
+import { GitBranch, Eye, FileCode, ExternalLink, Copy, Check } from 'lucide-react';
+
+function highlightYamlLine(line) {
+  const commentAt = line.indexOf('#');
+  const code = commentAt < 0 ? line : line.slice(0, commentAt);
+  const comment = commentAt < 0 ? '' : line.slice(commentAt);
+  const match = code.match(/^(\s*(?:-\s*)?)([^:]+)(:)(.*)$/);
+  const colorValue = (value) => {
+    const trimmed = value.trim();
+    if (/^(true|false|null|yes|no|on|off|\d+|\$\{.*\})$/i.test(trimmed)) return 'yaml-value';
+    if (/^["'].*["']$/.test(trimmed)) return 'yaml-string';
+    return '';
+  };
+  return <>{match ? <>{match[1]}<span className="yaml-key">{match[2]}</span><span className="yaml-punctuation">{match[3]}</span><span className={colorValue(match[4])}>{match[4]}</span></> : code}{comment && <span className="yaml-comment">{comment}</span>}</>;
+}
 
 export default function WorkflowViewer({ repo }) {
   const [workflows, setWorkflows] = useState([]);
@@ -7,6 +21,7 @@ export default function WorkflowViewer({ repo }) {
   const [yamlContent, setYamlContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [yamlLoading, setYamlLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function fetchWorkflows() {
@@ -92,13 +107,14 @@ export default function WorkflowViewer({ repo }) {
               Workflows ({workflows.length})
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {workflows.map((wf) => (
+          <div className="workflow-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {workflows.map((wf, index) => (
               <div
                 key={wf.id}
                 className="run-item"
                 onClick={() => loadWorkflowYaml(wf)}
                 style={{
+                  '--i': index,
                   border: selectedWorkflow?.id === wf.id ? '1px solid var(--border-primary)' : '1px solid transparent',
                   background: selectedWorkflow?.id === wf.id ? 'var(--bg-hover)' : 'transparent',
                   borderRadius: 'var(--radius-md)',
@@ -109,7 +125,7 @@ export default function WorkflowViewer({ repo }) {
                   <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                     {wf.name}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  <div className="workflow-path" title={wf.path} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                     {wf.path}
                   </div>
                 </div>
@@ -129,6 +145,10 @@ export default function WorkflowViewer({ repo }) {
               {selectedWorkflow ? selectedWorkflow.name : 'Select a Workflow'}
             </div>
             {selectedWorkflow && (
+              <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(yamlContent); setCopied(true); setTimeout(() => setCopied(false), 1500); }} aria-label="Copy YAML">
+                {copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copied' : 'Copy'}
+              </button>
               <a
                 href={selectedWorkflow.htmlUrl}
                 target="_blank"
@@ -138,6 +158,7 @@ export default function WorkflowViewer({ repo }) {
                 <ExternalLink size={14} />
                 GitHub
               </a>
+              </div>
             )}
           </div>
           {yamlLoading ? (
@@ -147,8 +168,8 @@ export default function WorkflowViewer({ repo }) {
             </div>
           ) : (
             <div className="code-block" style={{ maxHeight: 500, overflowY: 'auto' }}>
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {yamlContent}
+              <pre className="yaml-code" style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {yamlContent.split('\n').map((line, index) => <span className="yaml-line" style={{ '--i': index }} key={index}><span className="yaml-line-number">{index + 1}</span><code>{highlightYamlLine(line)}</code></span>)}
               </pre>
             </div>
           )}

@@ -1,6 +1,10 @@
 # CI/CD Guardian
 
-CI/CD Guardian connects to a GitHub repository, inspects its workflows and run history, detects reliability and security issues, and combines heuristic risk scoring with Gemini analysis.
+CI/CD Guardian connects to a GitHub repository, inspects its workflows and run history, detects reliability and security issues, and combines heuristic risk scoring with AI-generated analysis.
+
+## Free AI setup
+
+AI requests use Groq's free hosted inference when `GROQ_API_KEY` is set. If Groq is unavailable or no key is configured, the server tries Ollama at `OLLAMA_BASE_URL` using `OLLAMA_MODEL` (default `llama3.2`). For local inference, install Ollama and pull that model with `ollama pull llama3.2`. The server tries Groq first and falls back to Ollama automatically.
 
 ## Design system
 

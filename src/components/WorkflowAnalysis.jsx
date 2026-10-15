@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Shield,
   AlertTriangle,
@@ -15,6 +15,12 @@ import {
   Wrench,
   Eye,
   Search,
+  BrainCircuit,
+  Loader2,
+  Terminal,
+  Cpu,
+  Scan,
+  ShieldCheck,
 } from 'lucide-react';
 
 function ScoreRing({ score, size = 120, strokeWidth = 8 }) {
@@ -22,7 +28,7 @@ function ScoreRing({ score, size = 120, strokeWidth = 8 }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
   const color =
-    score >= 90 ? 'var(--success)' : score >= 75 ? '#60a5fa' : score >= 60 ? 'var(--warning)' : 'var(--error)';
+    score >= 90 ? 'var(--success)' : score >= 75 ? 'var(--cobalt)' : score >= 60 ? 'var(--warning)' : 'var(--error)';
 
   return (
     <div className="score-ring" style={{ width: size, height: size }}>
@@ -45,7 +51,7 @@ function ScoreRing({ score, size = 120, strokeWidth = 8 }) {
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+          style={{ '--ring-start': circumference, '--ring-end': offset, animation: 'ring-draw 500ms var(--ease-out) both' }}
         />
       </svg>
       <span className="score-value" style={{ color }}>{score}</span>
@@ -68,9 +74,100 @@ const categoryIcon = {
   Observability: <Eye size={14} />,
 };
 
+/* ─── AI Loading Tasks Animation ─────────────────────────────────────────── */
+
+const AI_LOADING_TASKS = [
+  { icon: Terminal, text: 'Parsing workflow YAML structure…', color: 'var(--info)' },
+  { icon: Scan, text: 'Scanning for security vulnerabilities…', color: 'var(--warning)' },
+  { icon: Cpu, text: 'Analyzing pipeline performance patterns…', color: 'var(--cobalt)' },
+  { icon: Lock, text: 'Checking permissions & secret exposure…', color: 'var(--error)' },
+  { icon: Gauge, text: 'Evaluating caching & build efficiency…', color: 'var(--success)' },
+  { icon: ShieldCheck, text: 'Assessing reliability & retry logic…', color: 'var(--lilac)' },
+  { icon: BrainCircuit, text: 'Generating AI-powered recommendations…', color: 'var(--accent-primary)' },
+  { icon: Sparkles, text: 'Compiling analysis results…', color: 'var(--tangerine)' },
+];
+
+function AiLoadingAnimation() {
+  const [activeTaskIndex, setActiveTaskIndex] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    let taskIdx = 0;
+    const totalTasks = AI_LOADING_TASKS.length;
+
+    const advance = () => {
+      if (taskIdx < totalTasks) {
+        setCompletedTasks((prev) => [...prev, taskIdx]);
+        taskIdx += 1;
+        setActiveTaskIndex(taskIdx);
+        setProgress(Math.round((taskIdx / totalTasks) * 100));
+      } else {
+        // Loop back with a slight pause
+        taskIdx = 0;
+        setCompletedTasks([]);
+        setActiveTaskIndex(0);
+        setProgress(0);
+      }
+      timerRef.current = setTimeout(advance, 1800 + Math.random() * 1200);
+    };
+
+    timerRef.current = setTimeout(advance, 800);
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
+  return (
+    <div className="ai-loading-live" aria-label="AI analysis in progress">
+      {/* Progress bar */}
+      <div className="ai-loading-progress-bar">
+        <div className="ai-loading-progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="ai-loading-header">
+        <Loader2 size={18} className="ai-loading-spinner-icon" />
+        <span>AI Deep Analysis in progress…</span>
+        <span className="ai-loading-pct">{progress}%</span>
+      </div>
+
+      {/* Task list */}
+      <div className="ai-loading-tasks">
+        {AI_LOADING_TASKS.map((task, idx) => {
+          const isActive = idx === activeTaskIndex;
+          const isCompleted = completedTasks.includes(idx);
+          const Icon = task.icon;
+
+          return (
+            <div
+              key={idx}
+              className={`ai-loading-task ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}
+              style={{ '--task-color': task.color }}
+            >
+              <span className="ai-loading-task-icon">
+                {isCompleted ? (
+                  <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
+                ) : isActive ? (
+                  <Loader2 size={15} className="ai-loading-spinner-icon" style={{ color: task.color }} />
+                ) : (
+                  <Icon size={15} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                )}
+              </span>
+              <span className="ai-loading-task-text">{task.text}</span>
+              {isCompleted && <span className="ai-loading-check">✓</span>}
+              {isActive && <span className="ai-loading-dots"><span>.</span><span>.</span><span>.</span></span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ─────────────────────────────────────────────────────── */
+
 export default function WorkflowAnalysis({ repo }) {
   const [analysis, setAnalysis] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiResults, setAiResults] = useState({});
   const [selectedWorkflowIdx, setSelectedWorkflowIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -97,6 +194,12 @@ export default function WorkflowAnalysis({ repo }) {
   }, [repo.owner, repo.repo]);
 
   async function runAiAnalysis(wf) {
+    const resultKey = `${repo.owner}/${repo.repo}:${wf.workflow.path}`;
+    if (aiResults[resultKey]) {
+      setAiAnalysis(aiResults[resultKey]);
+      setShowAi(true);
+      return;
+    }
     setAiLoading(true);
     setShowAi(true);
     try {
@@ -112,6 +215,7 @@ export default function WorkflowAnalysis({ repo }) {
       });
       const data = await res.json();
       setAiAnalysis(data.aiAnalysis);
+      setAiResults((results) => ({ ...results, [resultKey]: data.aiAnalysis }));
     } catch (err) {
       console.error(err);
       setAiAnalysis({ available: false, message: 'Failed to get AI analysis' });
@@ -156,6 +260,8 @@ export default function WorkflowAnalysis({ repo }) {
   const visibleWorkflows = analysis.workflows
     .map((workflow, index) => ({ workflow, index }))
     .filter(({ workflow }) => workflow.workflow.name.toLowerCase().includes(workflowQuery.toLowerCase()));
+  const totalIssueCount = analysis.workflows.reduce((sum, workflow) => sum + workflow.ruleBasedAnalysis.issues.length, 0);
+  const criticalIssueCount = analysis.workflows.reduce((sum, workflow) => sum + workflow.ruleBasedAnalysis.issues.filter((issue) => issue.severity === 'critical').length, 0);
 
   return (
     <div className="fade-in">
@@ -189,19 +295,12 @@ export default function WorkflowAnalysis({ repo }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">Total Issues Found</div>
-          <div className="stat-value">
-            {analysis.workflows.reduce((s, w) => s + w.ruleBasedAnalysis.issues.length, 0)}
-          </div>
+          <div className="stat-value"><span className="countup" style={{ '--count-target': totalIssueCount }} data-suffix="" aria-label={`${totalIssueCount} issues`}>{totalIssueCount}</span></div>
           <div className="stat-detail">across all workflows</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Critical Issues</div>
-          <div className="stat-value" style={{ color: 'var(--error)' }}>
-            {analysis.workflows.reduce(
-              (s, w) => s + w.ruleBasedAnalysis.issues.filter((i) => i.severity === 'critical').length,
-              0
-            )}
-          </div>
+          <div className="stat-value" style={{ color: 'var(--error)' }}><span className="countup" style={{ '--count-target': criticalIssueCount, '--count-color': 'var(--coral)' }} data-suffix="" aria-label={`${criticalIssueCount} critical issues`}>{criticalIssueCount}</span></div>
           <div className="stat-detail">require immediate attention</div>
         </div>
       </div>
@@ -226,10 +325,13 @@ export default function WorkflowAnalysis({ repo }) {
             <button
               key={idx}
               className={`workflow-chip ${selectedWorkflowIdx === idx ? 'active' : ''}`}
+              title={wf.workflow.path}
+              style={{ '--i': idx }}
               onClick={() => {
                 setSelectedWorkflowIdx(idx);
-                setShowAi(false);
-                setAiAnalysis(null);
+                const resultKey = `${repo.owner}/${repo.repo}:${wf.workflow.path}`;
+                setAiAnalysis(aiResults[resultKey] || null);
+                setShowAi(Boolean(aiResults[resultKey]));
               }}
             >
               {wf.workflow.name}
@@ -271,7 +373,7 @@ export default function WorkflowAnalysis({ repo }) {
               </div>
             )}
             {rba?.issues?.map((issue, idx) => (
-              <div key={idx} className={`issue-card ${issue.severity}`}>
+              <div key={idx} style={{ '--i': idx }} className={`issue-card ${issue.severity}`}>
                 <div className="issue-header">
                   {severityIcon[issue.severity]}
                   <span className="badge" style={{
@@ -297,7 +399,7 @@ export default function WorkflowAnalysis({ repo }) {
             <div className="card-title">
               <Sparkles size={18} />
               AI Deep Analysis
-              <span className="ai-badge">Gemini</span>
+              <span className="ai-badge">AI</span>
             </div>
             <button
               className="btn btn-primary btn-sm"
@@ -305,7 +407,10 @@ export default function WorkflowAnalysis({ repo }) {
               disabled={aiLoading}
             >
               {aiLoading ? (
-                <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                <>
+                  <Loader2 size={14} className="ai-loading-spinner-icon" />
+                  Analyzing…
+                </>
               ) : (
                 <>
                   <Sparkles size={14} />
@@ -316,22 +421,13 @@ export default function WorkflowAnalysis({ repo }) {
           </div>
 
           {!showAi && (
-            <div className="empty-state" style={{ padding: '40px 20px' }}>
-              <Sparkles size={36} />
-              <h3>AI Analysis Available</h3>
-              <p>
-                Click "Run AI Analysis" to get detailed, AI-powered insights
-                about this workflow's security, performance, and reliability.
-              </p>
+            <div className="ai-empty-compact">
+              <Sparkles size={22} />
+              <div><h3>AI analysis is ready</h3><p>Get focused security, performance, and reliability findings for this workflow.</p></div>
             </div>
           )}
 
-          {aiLoading && (
-            <div className="loading-state">
-              <div className="spinner spinner-lg" />
-              <p>Gemini AI is analyzing the workflow...</p>
-            </div>
-          )}
+          {aiLoading && <AiLoadingAnimation />}
 
           {showAi && !aiLoading && aiAnalysis && (
             <div className="ai-section slide-in">
@@ -346,6 +442,13 @@ export default function WorkflowAnalysis({ repo }) {
                     <h4>Summary</h4>
                     <p>{aiAnalysis.analysis.summary}</p>
                   </div>
+
+                  {/* AI Score */}
+                  {aiAnalysis.analysis.overallScore != null && (
+                    <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0' }}>
+                      <ScoreRing score={Math.round(aiAnalysis.analysis.overallScore)} size={80} strokeWidth={6} />
+                    </div>
+                  )}
 
                   {/* Critical Findings */}
                   {aiAnalysis.analysis.criticalFindings?.length > 0 && (

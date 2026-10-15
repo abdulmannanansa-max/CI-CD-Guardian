@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Brain,
   Plus,
@@ -11,6 +11,13 @@ import {
   Lightbulb,
   Shield,
   BarChart3,
+  Loader2,
+  GitCommit,
+  FileSearch,
+  History,
+  Cpu,
+  BrainCircuit,
+  Scan,
 } from 'lucide-react';
 
 function PredictionGauge({ probability, riskLevel }) {
@@ -24,7 +31,7 @@ function PredictionGauge({ probability, riskLevel }) {
     low: 'var(--success)',
     medium: 'var(--warning)',
     high: 'var(--error)',
-    critical: '#ef4444',
+    critical: 'var(--coral)',
   };
   const color = colorMap[riskLevel] || 'var(--text-muted)';
 
@@ -50,7 +57,7 @@ function PredictionGauge({ probability, riskLevel }) {
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 1s ease', transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+            style={{ '--ring-start': circumference, '--ring-end': offset, animation: 'ring-draw 700ms var(--ease-out) both', transform: 'rotate(-90deg)', transformOrigin: 'center' }}
           />
         </svg>
         <div className="gauge-center">
@@ -83,6 +90,92 @@ function BreakdownBar({ label, value, maxValue = 100, color = 'var(--accent-prim
   );
 }
 
+/* ─── Prediction Loading Animation ───────────────────────────────────────── */
+
+const PREDICTION_TASKS = [
+  { icon: GitCommit, text: 'Parsing commit details & changed files…', color: 'var(--info)' },
+  { icon: History, text: 'Fetching historical workflow run data…', color: 'var(--cobalt)' },
+  { icon: FileSearch, text: 'Running heuristic risk analysis…', color: 'var(--warning)' },
+  { icon: Scan, text: 'Evaluating file-based risk patterns…', color: 'var(--error)' },
+  { icon: BrainCircuit, text: 'Running AI failure prediction model…', color: 'var(--lilac)' },
+  { icon: Cpu, text: 'Combining heuristic & AI predictions…', color: 'var(--accent-primary)' },
+  { icon: Sparkles, text: 'Generating risk report & recommendations…', color: 'var(--success)' },
+];
+
+function PredictionLoadingAnimation() {
+  const [activeTaskIndex, setActiveTaskIndex] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    let taskIdx = 0;
+    const totalTasks = PREDICTION_TASKS.length;
+
+    const advance = () => {
+      if (taskIdx < totalTasks) {
+        setCompletedTasks((prev) => [...prev, taskIdx]);
+        taskIdx += 1;
+        setActiveTaskIndex(taskIdx);
+        setProgress(Math.round((taskIdx / totalTasks) * 100));
+      } else {
+        taskIdx = 0;
+        setCompletedTasks([]);
+        setActiveTaskIndex(0);
+        setProgress(0);
+      }
+      timerRef.current = setTimeout(advance, 1500 + Math.random() * 1000);
+    };
+
+    timerRef.current = setTimeout(advance, 600);
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
+  return (
+    <div className="ai-loading-live" aria-label="Prediction analysis in progress">
+      <div className="ai-loading-progress-bar">
+        <div className="ai-loading-progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="ai-loading-header">
+        <Loader2 size={18} className="ai-loading-spinner-icon" />
+        <span>Running heuristic + AI analysis…</span>
+        <span className="ai-loading-pct">{progress}%</span>
+      </div>
+
+      <div className="ai-loading-tasks">
+        {PREDICTION_TASKS.map((task, idx) => {
+          const isActive = idx === activeTaskIndex;
+          const isCompleted = completedTasks.includes(idx);
+          const Icon = task.icon;
+
+          return (
+            <div
+              key={idx}
+              className={`ai-loading-task ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}
+              style={{ '--task-color': task.color }}
+            >
+              <span className="ai-loading-task-icon">
+                {isCompleted ? (
+                  <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
+                ) : isActive ? (
+                  <Loader2 size={15} className="ai-loading-spinner-icon" style={{ color: task.color }} />
+                ) : (
+                  <Icon size={15} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                )}
+              </span>
+              <span className="ai-loading-task-text">{task.text}</span>
+              {isCompleted && <span className="ai-loading-check">✓</span>}
+              {isActive && <span className="ai-loading-dots"><span>.</span><span>.</span><span>.</span></span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ─────────────────────────────────────────────────────── */
+
 export default function PredictionPanel({ repo }) {
   const [commitMessage, setCommitMessage] = useState('');
   const [files, setFiles] = useState([
@@ -109,7 +202,7 @@ export default function PredictionPanel({ repo }) {
   }
 
   async function runPrediction() {
-    if (!commitMessage.trim() || files.every((f) => !f.filename.trim())) return;
+    if (!commitMessage.trim()) return;
     setLoading(true);
     setPrediction(null);
     try {
@@ -171,7 +264,8 @@ export default function PredictionPanel({ repo }) {
             <label>Files Changed</label>
             <div className="file-change-list">
               <div
-                className="file-change-row"
+                className="file-change-row file-change-heading"
+                aria-hidden="true"
                 style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}
               >
                 <span>Filename</span>
@@ -184,11 +278,13 @@ export default function PredictionPanel({ repo }) {
                 <div key={idx} className="file-change-row">
                   <input
                     className="input input-mono"
+                    aria-label={`Filename for file ${idx + 1}`}
                     placeholder="src/components/Auth.jsx"
                     value={file.filename}
                     onChange={(e) => updateFile(idx, 'filename', e.target.value)}
                   />
                   <select
+                    aria-label={`Change type for file ${idx + 1}`}
                     value={file.changeType}
                     onChange={(e) => updateFile(idx, 'changeType', e.target.value)}
                   >
@@ -200,6 +296,7 @@ export default function PredictionPanel({ repo }) {
                   <input
                     className="input"
                     type="number"
+                    aria-label={`Additions for file ${idx + 1}`}
                     min={0}
                     value={file.additions}
                     onChange={(e) => updateFile(idx, 'additions', parseInt(e.target.value) || 0)}
@@ -207,6 +304,7 @@ export default function PredictionPanel({ repo }) {
                   <input
                     className="input"
                     type="number"
+                    aria-label={`Deletions for file ${idx + 1}`}
                     min={0}
                     value={file.deletions}
                     onChange={(e) => updateFile(idx, 'deletions', parseInt(e.target.value) || 0)}
@@ -232,7 +330,7 @@ export default function PredictionPanel({ repo }) {
           </div>
 
           <button
-            className="btn btn-primary"
+            className="btn btn-primary predict-primary"
             onClick={runPrediction}
             disabled={loading || !commitMessage.trim()}
             style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
@@ -240,8 +338,8 @@ export default function PredictionPanel({ repo }) {
           >
             {loading ? (
               <>
-                <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                Analyzing...
+                <Loader2 size={16} className="ai-loading-spinner-icon" />
+                Analyzing…
               </>
             ) : (
               <>
@@ -262,28 +360,20 @@ export default function PredictionPanel({ repo }) {
             {prediction && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <span className="badge badge-info">Heuristic</span>
-                {ai?.available && <span className="ai-badge">+ Gemini AI</span>}
+                {ai?.available && <span className="ai-badge">+ AI insights</span>}
               </div>
             )}
           </div>
 
           {!prediction && !loading && (
-            <div className="empty-state">
-              <Brain size={36} />
-              <h3>Enter Commit Details</h3>
-              <p>
-                Fill in the commit message and file changes on the left, then click
-                "Predict" to see the failure probability analysis.
-              </p>
+            <div className="prediction-placeholder">
+              <PredictionGauge probability={0} riskLevel="low" />
+              <p>Example output: probability gauge, risk band, and contributing factors appear here.</p>
+              <span className="badge badge-neutral">Awaiting commit details</span>
             </div>
           )}
 
-          {loading && (
-            <div className="loading-state" style={{ padding: 50 }}>
-              <div className="spinner spinner-lg" />
-              <p>Running heuristic + AI analysis...</p>
-            </div>
-          )}
+          {loading && <PredictionLoadingAnimation />}
 
           {prediction && !loading && combined && (
             <div className="slide-in">
@@ -343,7 +433,7 @@ export default function PredictionPanel({ repo }) {
                 <div className="ai-section" style={{ marginTop: 16 }}>
                   <div className="ai-section-header">
                     <Sparkles size={16} style={{ color: 'var(--accent-primary-light)' }} />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Gemini AI Insights</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>AI Insights</span>
                     <span className="ai-badge">AI</span>
                   </div>
 

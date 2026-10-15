@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { cached } = require('./responseCache');
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -183,11 +184,11 @@ async function getWorkflowFile(owner, repo, path) {
 }
 
 module.exports = {
-  getRepoInfo,
-  getCommits,
-  getCommitDetails,
-  getWorkflows,
-  getWorkflowRuns,
-  getWorkflowRunJobs,
-  getWorkflowFile,
+  getRepoInfo: (...args) => cached(`repo:${args.join('/')}`, 60_000, () => getRepoInfo(...args)),
+  getCommits: (...args) => cached(`commits:${args.join('/')}`, 30_000, () => getCommits(...args)),
+  getCommitDetails: (...args) => cached(`commit:${args.join('/')}`, 60_000, () => getCommitDetails(...args)),
+  getWorkflows: (...args) => cached(`workflows:${args.join('/')}`, 60_000, () => getWorkflows(...args)),
+  getWorkflowRuns: (...args) => cached(`runs:${args.join('/')}`, 20_000, () => getWorkflowRuns(...args)),
+  getWorkflowRunJobs: (...args) => cached(`jobs:${args.join('/')}`, 60_000, () => getWorkflowRunJobs(...args)),
+  getWorkflowFile: (...args) => cached(`workflow-file:${args.join('/')}`, 300_000, () => getWorkflowFile(...args)),
 };

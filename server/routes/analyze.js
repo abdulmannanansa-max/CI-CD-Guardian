@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const github = require('../services/githubService');
 const { analyzeWorkflow } = require('../services/workflowAnalyzer');
-const { analyzeWorkflowWithAI } = require('../services/geminiService');
+const { analyzeWorkflowWithAI } = require('../services/aiService');
+const { cached } = require('../services/responseCache');
+const { createHash } = require('node:crypto');
 
 // POST /api/analyze/workflow
 // Body: { owner, repo, workflowPath, workflowName }
@@ -19,8 +21,14 @@ router.post('/workflow', async (req, res) => {
     // Rule-based analysis
     const ruleAnalysis = analyzeWorkflow(yamlContent, workflowName);
 
-    // AI-powered analysis (Gemini)
-    const aiAnalysis = await analyzeWorkflowWithAI(yamlContent, workflowName, ruleAnalysis.issues);
+    // AI-powered analysis with automatic provider fallback.
+    const cacheKey = createHash('sha256').update(`${workflowName}\0${yamlContent}\0${JSON.stringify(ruleAnalysis.issues)}`).digest('hex');
+    const aiAnalysis = await cached(
+      `ai-analysis:${cacheKey}`,
+      15 * 60_000,
+      () => analyzeWorkflowWithAI(yamlContent, workflowName, ruleAnalysis.issues),
+      (result) => result.available && result.analysis
+    );
 
     res.json({
       workflowName,
@@ -47,18 +55,15 @@ router.post('/all-workflows', async (req, res) => {
     }
 
     // Analyze each workflow
-    const results = [];
-    for (const wf of workflows) {
+    const results = (await Promise.all(workflows.map(async (wf) => {
       const yamlContent = await github.getWorkflowFile(owner, repo, wf.path);
-      if (yamlContent) {
-        const ruleAnalysis = analyzeWorkflow(yamlContent, wf.name);
-        results.push({
-          workflow: wf,
-          yamlContent,
-          ruleBasedAnalysis: ruleAnalysis,
-        });
-      }
-    }
+      if (!yamlContent) return null;
+      return {
+        workflow: wf,
+        yamlContent,
+        ruleBasedAnalysis: analyzeWorkflow(yamlContent, wf.name),
+      };
+    }))).filter(Boolean);
 
     // Overall repo CI/CD score
     const avgScore = results.length > 0

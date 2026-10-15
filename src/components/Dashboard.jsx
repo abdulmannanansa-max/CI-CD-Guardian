@@ -46,7 +46,9 @@ export default function Dashboard({ repo }) {
   const totalRuns = runs.length;
   const successRuns = runs.filter((r) => r.conclusion === 'success').length;
   const failedRuns = runs.filter((r) => r.conclusion === 'failure').length;
-  const successRate = totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0;
+  const inProgressRuns = runs.filter((r) => r.status === 'in_progress' || r.status === 'queued' || r.status === 'pending').length;
+  const completedRuns = totalRuns - inProgressRuns;
+  const successRate = completedRuns > 0 ? Math.round((successRuns / completedRuns) * 100) : 0;
 
   const { info } = repo;
 
@@ -97,21 +99,22 @@ export default function Dashboard({ repo }) {
         <div className="hero-gauge-wrap">
           <svg className="hero-gauge" viewBox="0 0 132 132" role="img" aria-label={`${successRate}% CI/CD success rate`}>
             <circle cx="66" cy="66" r={gaugeRadius} className="hero-gauge-track" />
-            <circle cx="66" cy="66" r={gaugeRadius} className="hero-gauge-value" strokeDasharray={gaugeCircumference} strokeDashoffset={gaugeOffset} />
+            <circle cx="66" cy="66" r={gaugeRadius} className="hero-gauge-value" strokeDasharray={gaugeCircumference} strokeDashoffset={gaugeOffset} style={{ '--ring-start': gaugeCircumference, '--ring-end': gaugeOffset }} />
           </svg>
           <div className="hero-gauge-label"><strong>{successRate}%</strong><span>SUCCESS RATE</span></div>
         </div>
         <div className="hero-heatmap" aria-label="Recent run status heatmap">
           <span className="eyebrow">RUN PULSE / 30</span>
-          <div className="heatmap-grid">{runs.slice(0, 30).map((run) => <span key={run.id} className={`heat-cell ${run.conclusion || run.status}`} title={`${run.name}: ${run.conclusion || run.status}`} />)}</div>
+          <div className="heatmap-grid">{runs.slice(0, 30).map((run, index) => <span key={run.id} style={{ '--i': index }} className={`heat-cell ${run.conclusion || run.status}`} title={`${run.name}: ${run.conclusion || run.status}`} />)}</div>
+          <div className="heatmap-legend"><span><i className="success" />Success</span><span><i className="in_progress" />In progress</span><span><i className="failure" />Failed</span><span><i className="no_data" />No data</span></div>
         </div>
       </section>
 
       {/* Stats */}
-      <div className="stats-grid">
+      <div className="stats-grid dashboard-stat-blocks">
         <div className="stat-card">
           <div className="stat-label">Stars</div>
-          <div className="stat-value">{info.stars?.toLocaleString()}</div>
+          <div className="stat-value"><span className="countup" style={{ '--count-target': info.stars || 0 }} data-suffix="" aria-label={`${info.stars || 0} stars`}>{info.stars || 0}</span></div>
           <div className="stat-detail">
             <Star size={12} style={{ marginRight: 4 }} />
             Community support
@@ -123,22 +126,23 @@ export default function Dashboard({ repo }) {
             className="stat-value"
             style={{ color: successRate >= 80 ? 'var(--success)' : successRate >= 50 ? 'var(--warning)' : 'var(--error)' }}
           >
-            {successRate}%
+            <span className="countup" style={{ '--count-target': successRate, '--count-color': 'var(--bg)' }} data-suffix="%" aria-label={`${successRate}%`}>{successRate}</span>
           </div>
-          <div className="stat-detail">{totalRuns} recent runs analyzed</div>
+          <div className="stat-detail">{successRuns} of {completedRuns} completed runs{inProgressRuns > 0 ? ` · ${inProgressRuns} in progress` : ''}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Workflows</div>
-          <div className="stat-value">{workflows.length}</div>
+          <div className="stat-value"><span className="countup" style={{ '--count-target': workflows.length }} data-suffix="" aria-label={`${workflows.length} workflows`}>{workflows.length}</span></div>
           <div className="stat-detail">Active CI/CD pipelines</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Failed Runs</div>
           <div className="stat-value" style={{ color: failedRuns > 0 ? 'var(--error)' : 'var(--success)' }}>
-            {failedRuns}
+            <span className="countup" style={{ '--count-target': failedRuns, '--count-color': 'var(--bg)' }} data-suffix="" aria-label={`${failedRuns} failed runs`}>{failedRuns}</span>
           </div>
           <div className="stat-detail">out of {totalRuns} recent runs</div>
         </div>
+        {inProgressRuns > 0 && <div className="stat-card"><div className="stat-label">In Progress</div><div className="stat-value" style={{ color: 'var(--highlight)' }}><span className="countup" style={{ '--count-target': inProgressRuns }} data-suffix="" aria-label={`${inProgressRuns} runs in progress`}>{inProgressRuns}</span></div><div className="stat-detail">runs still executing</div></div>}
       </div>
 
       {/* Two columns: Commits + Run History */}

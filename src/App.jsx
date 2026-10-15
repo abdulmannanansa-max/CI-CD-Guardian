@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import RepoConnect from './components/RepoConnect';
 import Dashboard from './components/Dashboard';
@@ -13,8 +13,25 @@ const API_BASE = '/api';
 export default function App() {
   const [repo, setRepo] = useState(null); // { owner, repo, info }
   const [activeView, setActiveView] = useState('dashboard');
+  const [visitedViews, setVisitedViews] = useState(() => new Set(['dashboard']));
   const [loading, setLoading] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [leavingView, setLeavingView] = useState(null);
+  const [transitionKey, setTransitionKey] = useState(0);
+  const transitionTimer = useRef(null);
+
+  const navigate = useCallback((view) => {
+    if (view !== activeView) {
+      window.clearTimeout(transitionTimer.current);
+      setLeavingView(activeView);
+      setTransitionKey((key) => key + 1);
+      transitionTimer.current = window.setTimeout(() => setLeavingView(null), 160);
+    }
+    setVisitedViews((views) => new Set(views).add(view));
+    setActiveView(view);
+  }, [activeView]);
+
+  useEffect(() => () => window.clearTimeout(transitionTimer.current), []);
 
   useEffect(() => {
     try {
@@ -52,6 +69,9 @@ export default function App() {
       const info = await res.json();
       const parts = info.fullName.split('/');
       setRepo({ owner: parts[0], repo: parts[1], info });
+      setLeavingView(null);
+      setTransitionKey((key) => key + 1);
+      setVisitedViews(new Set(['dashboard']));
       setActiveView('dashboard');
       return null;
     } catch (err) {
@@ -83,7 +103,7 @@ export default function App() {
         <div className="command-search"><Search size={16} /><input autoFocus placeholder="Jump to a control or page…" /></div>
         <div className="command-list">
           {commandItems.map(([id, label]) => (
-            <button key={id} disabled={!repo} onClick={() => { setActiveView(id); setCommandOpen(false); }}>
+            <button key={id} disabled={!repo} onClick={() => { navigate(id); setCommandOpen(false); }}>
               <span>{label}</span><kbd>{id === activeView ? 'OPEN' : 'GO'}</kbd>
             </button>
           ))}
@@ -96,8 +116,8 @@ export default function App() {
   // If no repo connected, show connect screen
   if (!repo) {
     return (
-      <div className="app-layout">
-        <Sidebar activeView={activeView} onNavigate={setActiveView} repo={null} onDisconnect={disconnect} />
+      <div className="app-layout" data-active-view="dashboard">
+        <Sidebar activeView={activeView} onNavigate={navigate} repo={null} onDisconnect={disconnect} />
         <main className="main-content">
           <RepoConnect onConnect={connectRepo} loading={loading} />
         </main>
@@ -106,28 +126,26 @@ export default function App() {
     );
   }
 
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return <Dashboard repo={repo} />;
-      case 'workflows':
-        return <WorkflowViewer repo={repo} />;
-      case 'analysis':
-        return <WorkflowAnalysis repo={repo} />;
-      case 'logs':
-        return <FailureLogs repo={repo} />;
-      case 'predict':
-        return <PredictionPanel repo={repo} />;
-      default:
-        return <Dashboard repo={repo} />;
-    }
+  const views = {
+    dashboard: <Dashboard repo={repo} />,
+    workflows: <WorkflowViewer repo={repo} />,
+    analysis: <WorkflowAnalysis repo={repo} />,
+    logs: <FailureLogs repo={repo} />,
+    predict: <PredictionPanel repo={repo} />,
   };
 
   return (
-    <div className="app-layout">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} repo={repo} onDisconnect={disconnect} />
+    <div className="app-layout" data-active-view={activeView}>
+      <Sidebar activeView={activeView} onNavigate={navigate} repo={repo} onDisconnect={disconnect} />
       <main className="main-content">
-        {renderView()}
+        {Object.entries(views).filter(([view]) => visitedViews.has(view)).map(([view, content]) => (
+          <div key={`${repo.owner}/${repo.repo}:${view}`} data-page={view} data-motion-key={activeView === view ? transitionKey : undefined}
+            className={`page-layer ${activeView === view ? `page-enter page-enter-${transitionKey}` : leavingView === view ? 'page-exit' : ''}`}
+            aria-hidden={activeView !== view && leavingView !== view}
+            style={{ display: activeView === view || leavingView === view ? 'block' : 'none' }}>
+            {content}
+          </div>
+        ))}
       </main>
       {commandPalette}
     </div>

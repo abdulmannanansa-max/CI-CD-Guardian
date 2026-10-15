@@ -1,35 +1,122 @@
 @import url('https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600&family=Unbounded:wght@500;600;700;800&display=swap');
 
-/* CI/CD Guardian design tokens. Tune the palette and motion here. */
+/* Single source for product color and motion tokens. */
 :root {
-  --ink: #0c0716;
-  --surface: #170f26;
-  --raised: #221538;
-  --paper: #f3ecdd;
-  --primary: #ff2d8a;
-  --secondary: #7c5cff;
-  --highlight: #ffb020;
-  --success: #2cffb3;
-  --danger: #ff4d3d;
-  --info: #27d8ff;
-  --primary-rgb: 255, 45, 138;
-  --secondary-rgb: 124, 92, 255;
+  --bg: #0F1210;
+  --surface-1: #161B18;
+  --surface-2: #1D2420;
+  --line: #2A332E;
+  --text: #EEF0E8;
+  --text-muted: #9AA39B;
+  --citron: #D8F24A;
+  --coral: #FF6B57;
+  --cobalt: #4C7DFF;
+  --mint: #3DDBA4;
+  --lilac: #B79BFF;
+  --tangerine: #FF9F43;
+  --sky: #6FD3FF;
+  --fallback-cream: #FFF1DF;
+  --fallback-peach: #FFD1BD;
+  --citron-rgb: 216, 242, 74;
+  --coral-rgb: 255, 107, 87;
+  --cobalt-rgb: 76, 125, 255;
+  --mint-rgb: 61, 219, 164;
+  --lilac-rgb: 183, 155, 255;
+  --tangerine-rgb: 255, 159, 67;
+  --sky-rgb: 111, 211, 255;
+  --bg-rgb: 15, 18, 16;
+  --text-rgb: 238, 240, 232;
+  --text-muted-rgb: 154, 163, 155;
+
+  --ink: var(--bg);
+  --surface: var(--surface-1);
+  --raised: var(--surface-2);
+  --paper: var(--text);
+  --primary: var(--citron);
+  --secondary: var(--cobalt);
+  --highlight: var(--tangerine);
+  --success: var(--mint);
+  --danger: var(--coral);
+  --info: var(--sky);
+  --warning: var(--tangerine);
+  --error: var(--coral);
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--surface-1);
+  --bg-tertiary: var(--surface-2);
+  --bg-card: var(--surface-1);
+  --bg-glass: var(--surface-1);
+  --bg-hover: var(--surface-2);
+  --border-primary: var(--line);
+  --border-subtle: var(--line);
+  --border-focus: var(--citron);
+  --text-primary: var(--text);
+  --text-secondary: var(--text-muted);
+  --text-accent: var(--citron);
+  --accent-primary: var(--citron);
+  --accent-primary-light: var(--citron);
+  --accent-hover: var(--tangerine);
+  --accent-glow: transparent;
+  --success-bg: rgba(61, 219, 164, .14);
+  --warning-bg: rgba(255, 159, 67, .14);
+  --error-bg: rgba(255, 107, 87, .14);
+  --info-bg: rgba(111, 211, 255, .14);
+  --gradient-primary: var(--citron);
+  --gradient-dark: var(--bg);
+  --gradient-card: var(--surface-1);
+  --gradient-success: var(--mint);
+  --gradient-error: var(--coral);
+  --primary-rgb: 216, 242, 74;
+  --secondary-rgb: 76, 125, 255;
   --font-display: 'Unbounded', sans-serif;
   --font-body: 'Familjen Grotesk', sans-serif;
   --font-data: 'Martian Mono', monospace;
   --font-sans: var(--font-body);
   --font-mono: var(--font-data);
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.7, 0, .2, 1);
+  --ease-snappy: var(--ease-out);
+  --ease-expo: var(--ease-out);
+  --dur-1: 150ms;
+  --dur-2: 300ms;
+  --dur-3: 500ms;
   --motion-factor: 1;
-  --motion-fast: calc(180ms * var(--motion-factor));
-  --motion-base: calc(360ms * var(--motion-factor));
-  --motion-slow: calc(700ms * var(--motion-factor));
-  --ease-snappy: cubic-bezier(.2, .9, .2, 1);
-  --ease-expo: cubic-bezier(.16, 1, .3, 1);
+  --motion-fast: var(--dur-1);
+  --motion-base: var(--dur-2);
+  --motion-slow: var(--dur-3);
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-card: 12px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, .25);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, .3);
+  --shadow-glow: none;
+  --card-bg: var(--surface-1);
+  --accent-1: var(--coral);
+  --accent-2: var(--citron);
+  --accent-3: var(--cobalt);
+  --accent-lime: var(--citron);
+  --card-text: var(--text);
+  --card-copy: var(--text-muted);
+  --card-placeholder: var(--text-muted);
+  --terminal-bg: var(--surface-1);
+  --terminal-success: var(--mint);
+  --terminal-error: var(--coral);
+  --terminal-warning: var(--tangerine);
+  --terminal-info: var(--sky);
 }
 
-[data-motion='off'] { --motion-factor: 0; }
-[data-motion='reduced'] { --motion-factor: .45; }
+[data-motion='off'] {
+  --motion-factor: 0;
+}
+
+[data-motion='reduced'] {
+  --motion-factor: .45;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --motion-factor: 0; }
+  :root {
+    --motion-factor: 0;
+  }
 }
