@@ -46,9 +46,8 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
         </button>
       </div>
 
-      <nav className="sidebar-nav" id="primary-navigation" aria-label="Primary navigation" style={{ '--active-index': Math.max(0, NAV_ITEMS.findIndex((item) => item.id === activeView)) }}>
+      <nav className="sidebar-nav" id="primary-navigation" aria-label="Primary navigation">
         <div className="nav-section-label">Navigation</div>
-        <span className="nav-active-indicator" aria-hidden="true" />
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
