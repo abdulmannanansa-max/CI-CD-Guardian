@@ -6,6 +6,7 @@ import WorkflowViewer from './components/WorkflowViewer';
 import WorkflowAnalysis from './components/WorkflowAnalysis';
 import FailureLogs from './components/FailureLogs';
 import PredictionPanel from './components/PredictionPanel';
+import AnalysisGuide from './components/AnalysisGuide';
 import { Command, Search, X } from 'lucide-react';
 
 const API_BASE = '/api';
@@ -94,6 +95,7 @@ export default function App() {
     ['analysis', 'Robustness Analysis'],
     ['logs', 'Failure Logs'],
     ['predict', 'Failure Prediction'],
+    ['guide', 'How Analysis Works'],
   ];
 
   const commandPalette = commandOpen && (
@@ -103,7 +105,7 @@ export default function App() {
         <div className="command-search"><Search size={16} /><input autoFocus placeholder="Jump to a control or page…" /></div>
         <div className="command-list">
           {commandItems.map(([id, label]) => (
-            <button key={id} disabled={!repo} onClick={() => { navigate(id); setCommandOpen(false); }}>
+            <button key={id} disabled={!repo && id !== 'guide'} onClick={() => { navigate(id); setCommandOpen(false); }}>
               <span>{label}</span><kbd>{id === activeView ? 'OPEN' : 'GO'}</kbd>
             </button>
           ))}
@@ -119,7 +121,7 @@ export default function App() {
       <div className="app-layout" data-active-view="dashboard">
         <Sidebar activeView={activeView} onNavigate={navigate} repo={null} onDisconnect={disconnect} />
         <main className="main-content">
-          <RepoConnect onConnect={connectRepo} loading={loading} />
+          {activeView === 'guide' ? <AnalysisGuide /> : <RepoConnect onConnect={connectRepo} loading={loading} />}
         </main>
         {commandPalette}
       </div>
@@ -132,6 +134,7 @@ export default function App() {
     analysis: <WorkflowAnalysis repo={repo} />,
     logs: <FailureLogs repo={repo} />,
     predict: <PredictionPanel repo={repo} />,
+    guide: <AnalysisGuide />,
   };
 
   return (

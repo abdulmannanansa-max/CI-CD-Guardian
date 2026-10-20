@@ -10,6 +10,7 @@ import {
   Zap,
   PanelLeftClose,
   PanelLeftOpen,
+  BookOpenCheck,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'analysis', label: 'Robustness Analysis', icon: Shield },
   { id: 'logs', label: 'Failure Logs', icon: FileWarning },
   { id: 'predict', label: 'Failure Prediction', icon: Brain },
+  { id: 'guide', label: 'How Analysis Works', icon: BookOpenCheck },
 ];
 
 export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) {
@@ -56,8 +58,8 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
             title={item.label}
             aria-label={item.label}
             aria-current={activeView === item.id ? 'page' : undefined}
-            disabled={!repo && item.id !== 'dashboard'}
-            style={!repo && item.id !== 'dashboard' ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+            disabled={!repo && item.id !== 'dashboard' && item.id !== 'guide'}
+            style={!repo && item.id !== 'dashboard' && item.id !== 'guide' ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
           >
             <item.icon />
             <span className="nav-label">{item.label}</span>

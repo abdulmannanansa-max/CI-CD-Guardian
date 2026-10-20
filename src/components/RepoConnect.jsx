@@ -6,7 +6,13 @@ import {
 import PipelineBackdrop from './PipelineBackdrop';
 import TerminalStrip from './TerminalStrip';
 
-const examples = ['facebook/react', 'vercel/next.js', 'microsoft/vscode', 'nodejs/node'];
+const examples = [
+  { repo: 'square/retrofit', featured: true },
+  { repo: 'facebook/react' },
+  { repo: 'vercel/next.js' },
+  { repo: 'microsoft/vscode' },
+  { repo: 'nodejs/node' },
+];
 const stages = [
   ['01', 'Commit', 'Changes enter the pipeline'],
   ['02', 'Build', 'Dependencies and runners'],
@@ -146,11 +152,15 @@ export default function RepoConnect({ onConnect, loading }) {
                 <div className="example-heading"><span>OR EXPLORE A LIVE REPOSITORY</span><span>↘</span></div>
                 <div className="example-list">
                   {examples.map((example, index) => (
-                    <button key={example} type="button" className="example-repo" onClick={() => setUrl(example)} onMouseEnter={() => setHoveredExample(example)} onMouseLeave={() => setHoveredExample('')} onFocus={() => setHoveredExample(example)} onBlur={() => setHoveredExample('')}>
-                      <span className="example-index">0{index + 1}</span><span>{example}</span><ArrowRight size={14} />
+                    <button key={example.repo} type="button" className={`example-repo ${example.featured ? 'example-repo-featured' : ''}`} onClick={() => setUrl(example.repo)} onMouseEnter={() => setHoveredExample(example.repo)} onMouseLeave={() => setHoveredExample('')} onFocus={() => setHoveredExample(example.repo)} onBlur={() => setHoveredExample('')}>
+                      <span className="example-index">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="example-repo-copy"><span>{example.repo}</span>{example.featured && <small>HIGH-FAILURE SAMPLE</small>}</span>
+                      {example.featured && <span className="example-benchmark-badge">38%*</span>}
+                      <ArrowRight size={14} />
                     </button>
                   ))}
                 </div>
+                <div className="example-source-note">*36% failure rate in a public 30-day benchmark snapshot (90 runs). Live data may differ. <a href="https://gitspider.com/scan/square/retrofit" target="_blank" rel="noopener noreferrer">View snapshot</a></div>
               </div>
               <div className="connect-card-foot"><span><span className="privacy-dot" /> PUBLIC REPOSITORIES</span><span>NO SETUP REQUIRED</span></div>
             </div>
