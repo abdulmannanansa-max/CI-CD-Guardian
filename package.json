@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "client": "vite",
-    "server": "node server/index.js",
+    "server": "node --use-system-ca server/index.js",
     "build": "vite build"
   },
   "keywords": [

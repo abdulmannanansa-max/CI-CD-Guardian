@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const github = require('../services/githubService');
 const { analyzeWorkflow } = require('../services/workflowAnalyzer');
-const { analyzeWorkflowWithAI } = require('../services/aiService');
+const { analyzeWorkflowWithAI, generateFixedWorkflow } = require('../services/aiService');
 const { cached } = require('../services/responseCache');
 const { createHash } = require('node:crypto');
+const YAML = require('yaml');
 
 // POST /api/analyze/workflow
 // Body: { owner, repo, workflowPath, workflowName }
@@ -37,6 +38,45 @@ router.post('/workflow', async (req, res) => {
       ruleBasedAnalysis: ruleAnalysis,
       aiAnalysis,
     });
+  } catch (err) {
+    res.status(err.response?.status || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/analyze/workflow/fix — generate a validated draft; never writes to GitHub.
+router.post('/workflow/fix', async (req, res) => {
+  try {
+    const { owner, repo, workflowPath, workflowName } = req.body;
+    if (![owner, repo, workflowPath, workflowName].every((value) => typeof value === 'string' && value.trim())) {
+      return res.status(400).json({ error: 'owner, repo, workflowPath, and workflowName are required.' });
+    }
+    if (!workflowPath.startsWith('.github/workflows/') || workflowPath.includes('..')) {
+      return res.status(400).json({ error: 'A GitHub Actions workflow path is required.' });
+    }
+
+    const yamlContent = await github.getWorkflowFile(owner, repo, workflowPath);
+    if (!yamlContent) return res.status(404).json({ error: 'Workflow file not found' });
+    const ruleAnalysis = analyzeWorkflow(yamlContent, workflowName);
+    const cacheKey = createHash('sha256').update(`${workflowName}\0${yamlContent}\0${JSON.stringify(ruleAnalysis.issues)}`).digest('hex');
+    const aiAnalysis = await cached(
+      `ai-analysis:${cacheKey}`,
+      15 * 60_000,
+      () => analyzeWorkflowWithAI(yamlContent, workflowName, ruleAnalysis.issues),
+      (result) => result.available && result.analysis
+    );
+    if (!aiAnalysis.available || !aiAnalysis.analysis) {
+      return res.status(503).json({ error: aiAnalysis.message || 'AI analysis is unavailable; no workflow draft was generated.' });
+    }
+
+    const draft = await generateFixedWorkflow(yamlContent, workflowName, aiAnalysis.analysis);
+    if (typeof draft.workflowYaml !== 'string' || !draft.workflowYaml.trim() || draft.workflowYaml.length > 100_000) {
+      return res.status(502).json({ error: 'AI returned an empty or oversized workflow draft.' });
+    }
+    const document = YAML.parseDocument(draft.workflowYaml, { uniqueKeys: true });
+    if (document.errors.length || !document.toJS() || typeof document.toJS() !== 'object' || !document.toJS().jobs) {
+      return res.status(502).json({ error: 'AI returned invalid workflow YAML. The original workflow was not changed.' });
+    }
+    res.json({ workflowName, workflowPath, workflowYaml: draft.workflowYaml, appliedChanges: draft.appliedChanges, reviewNotes: draft.reviewNotes });
   } catch (err) {
     res.status(err.response?.status || 500).json({ error: err.message });
   }

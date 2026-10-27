@@ -21,6 +21,8 @@ import {
   Cpu,
   Scan,
   ShieldCheck,
+  Download,
+  Copy,
 } from 'lucide-react';
 
 function ScoreRing({ score, size = 120, strokeWidth = 8 }) {
@@ -173,6 +175,10 @@ export default function WorkflowAnalysis({ repo }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAi, setShowAi] = useState(false);
   const [workflowQuery, setWorkflowQuery] = useState('');
+  const [workflowDraft, setWorkflowDraft] = useState(null);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [copiedDraft, setCopiedDraft] = useState(false);
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -221,6 +227,46 @@ export default function WorkflowAnalysis({ repo }) {
       setAiAnalysis({ available: false, message: 'Failed to get AI analysis' });
     }
     setAiLoading(false);
+  }
+
+  async function generateWorkflowDraft(wf) {
+    setDraftLoading(true);
+    setDraftError('');
+    setWorkflowDraft(null);
+    try {
+      const res = await fetch('/api/analyze/workflow/fix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: repo.owner, repo: repo.repo, workflowPath: wf.workflow.path, workflowName: wf.workflow.name }),
+      });
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (/^\s*<!doctype\s+html|^\s*<html/i.test(responseText)) {
+          throw new Error('The API returned a web page instead of a workflow response. Restart the CI/CD Guardian server so it loads the workflow draft endpoint, then try again.');
+        }
+        throw new Error('The API returned an unreadable response. Check that the CI/CD Guardian server is running, then try again.');
+      }
+      if (!res.ok) throw new Error(data.error || 'Could not generate workflow draft.');
+      setWorkflowDraft(data);
+    } catch (err) {
+      setDraftError(err.message || 'Could not generate workflow draft.');
+    } finally {
+      setDraftLoading(false);
+    }
+  }
+
+  function downloadWorkflowDraft() {
+    if (!workflowDraft?.workflowYaml) return;
+    const blob = new Blob([workflowDraft.workflowYaml], { type: 'text/yaml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = workflowDraft.workflowPath.split('/').pop() || 'workflow.yml';
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   if (loading) {
@@ -329,6 +375,8 @@ export default function WorkflowAnalysis({ repo }) {
               style={{ '--i': idx }}
               onClick={() => {
                 setSelectedWorkflowIdx(idx);
+                setWorkflowDraft(null);
+                setDraftError('');
                 const resultKey = `${repo.owner}/${repo.repo}:${wf.workflow.path}`;
                 setAiAnalysis(aiResults[resultKey] || null);
                 setShowAi(Boolean(aiResults[resultKey]));
@@ -544,6 +592,29 @@ export default function WorkflowAnalysis({ repo }) {
                       ))}
                     </div>
                   )}
+                  <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                    <div className="ai-section-header"><Wrench size={16} /><span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Create a fixed workflow draft</span></div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '8px 0 12px' }}>Generate a complete YAML draft from these findings. Review it before using it; this does not change the connected repository.</p>
+                    <button className="btn btn-primary btn-sm" onClick={() => generateWorkflowDraft(currentWf)} disabled={draftLoading}>
+                      {draftLoading ? <><Loader2 size={14} className="ai-loading-spinner-icon" /> Generating draft…</> : <><Wrench size={14} /> Generate fixed workflow</>}
+                    </button>
+                    {draftError && <div className="issue-card warning" role="alert" style={{ marginTop: 12 }}><div className="issue-message">{draftError}</div></div>}
+                    {workflowDraft && (
+                      <div style={{ marginTop: 14 }}>
+                        <div className="ai-finding" style={{ borderLeftColor: 'var(--success)' }}>
+                          <h4>Draft ready for review</h4>
+                          <p>Original workflow remains unchanged. Download this file and review it before replacing your workflow.</p>
+                          {workflowDraft.appliedChanges?.length > 0 && <ul>{workflowDraft.appliedChanges.map((change, i) => <li key={i}>{change}</li>)}</ul>}
+                          {workflowDraft.reviewNotes?.length > 0 && <><h4>Review notes</h4><ul>{workflowDraft.reviewNotes.map((note, i) => <li key={i}>{note}</li>)}</ul></>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={downloadWorkflowDraft}><Download size={14} /> Download YAML</button>
+                          <button className="btn btn-secondary btn-sm" onClick={async () => { try { await navigator.clipboard.writeText(workflowDraft.workflowYaml); setCopiedDraft(true); window.setTimeout(() => setCopiedDraft(false), 1800); } catch { setDraftError('Clipboard access was unavailable. Use Download YAML instead.'); } }}><Copy size={14} /> {copiedDraft ? 'Copied' : 'Copy YAML'}</button>
+                        </div>
+                        <pre style={{ maxHeight: 420, overflow: 'auto', padding: 14, borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '0.75rem', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}><code>{workflowDraft.workflowYaml}</code></pre>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="issue-card info">

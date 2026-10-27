@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600&family=Unbounded:wght@500;600;700;800&display=swap');
-
 /* Single source for product color and motion tokens. */
 :root {
   --bg: #0F1210;

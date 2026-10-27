@@ -14,12 +14,12 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-  { id: 'workflows', label: 'CI/CD Workflows', icon: GitBranch },
-  { id: 'analysis', label: 'Robustness Analysis', icon: Shield },
-  { id: 'logs', label: 'Failure Logs', icon: FileWarning },
-  { id: 'predict', label: 'Failure Prediction', icon: Brain },
-  { id: 'guide', label: 'How Analysis Works', icon: BookOpenCheck },
+  { id: 'dashboard', label: 'Overview', mobileLabel: 'Home', icon: LayoutDashboard },
+  { id: 'workflows', label: 'CI/CD Workflows', mobileLabel: 'Workflows', icon: GitBranch },
+  { id: 'analysis', label: 'Robustness Analysis', mobileLabel: 'Analysis', icon: Shield },
+  { id: 'logs', label: 'Failure Logs', mobileLabel: 'Logs', icon: FileWarning },
+  { id: 'predict', label: 'Failure Prediction', mobileLabel: 'Predict', icon: Brain },
+  { id: 'guide', label: 'How Analysis Works', mobileLabel: 'Guide', icon: BookOpenCheck },
 ];
 
 export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) {
@@ -63,6 +63,7 @@ export default function Sidebar({ activeView, onNavigate, repo, onDisconnect }) 
           >
             <item.icon />
             <span className="nav-label">{item.label}</span>
+            <span className="nav-mobile-label" aria-hidden="true">{item.mobileLabel}</span>
           </button>
         ))}
 

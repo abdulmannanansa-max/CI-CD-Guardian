@@ -2,6 +2,10 @@
 
 CI/CD Guardian connects to a GitHub repository, inspects its workflows and run history, detects reliability and security issues, and combines heuristic risk scoring with AI-generated analysis.
 
+## GitHub TLS trust
+
+The server starts Node.js with `--use-system-ca`, so it trusts certificates installed in the operating system certificate store. This supports networks that inspect HTTPS traffic through an organization proxy without disabling TLS verification. If your proxy's root certificate is not installed in the system trust store, install the certificate provided by your IT administrator there, then restart the server with `npm run server` (or `npm run dev`). Do not use `NODE_TLS_REJECT_UNAUTHORIZED=0`; that disables certificate validation.
+
 ## How workflow analysis works
 
 The backend statically inspects each GitHub Actions workflow. The heuristic analyzer is implemented in [`server/services/workflowAnalyzer.js`](server/services/workflowAnalyzer.js).
